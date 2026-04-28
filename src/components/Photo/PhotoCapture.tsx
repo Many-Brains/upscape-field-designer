@@ -5,7 +5,7 @@ import { uploadPhoto } from "../../lib/api-photos";
 type Stage = "idle" | "resize" | "gps" | "upload" | "save";
 
 const STAGE_LABEL: Record<Stage, string> = {
-  idle: "📷 Take Photo",
+  idle: "📷 Add Photo",
   resize: "Resizing…",
   gps: "Locating…",
   upload: "Uploading…",
@@ -83,7 +83,7 @@ export function PhotoCapture({
         {STAGE_LABEL[stage]}
       </button>
       <input
-        ref={inputRef} type="file" accept="image/*" capture="environment"
+        ref={inputRef} type="file" accept="image/*"
         onChange={onChange} className="hidden"
       />
       {error && (

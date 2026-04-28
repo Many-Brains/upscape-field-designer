@@ -12,7 +12,7 @@ export interface PropertyMapProps {
   polygons?: { id: string; coords: [number, number][]; color: string }[]; // [lng, lat]
   draftLine?: [number, number][];  // in-progress polyline being drawn (lng, lat)
   onMapClick: (lng: number, lat: number) => void;
-  onPinClick?: (id: string) => void;
+  onTargetClick?: (id: string) => void;
 }
 
 function ClickHandler({ onMapClick }: { onMapClick: (lng: number, lat: number) => void }) {
@@ -30,7 +30,7 @@ const pinIcon = (color: string) => L.divIcon({
 const toLatLng = (c: [number, number]): [number, number] => [c[1], c[0]];
 
 export function PropertyMap(props: PropertyMapProps) {
-  const { center, zoom, pins, lines = [], polygons = [], draftLine, onMapClick, onPinClick } = props;
+  const { center, zoom, pins, lines = [], polygons = [], draftLine, onMapClick, onTargetClick } = props;
   return (
     <MapContainer center={center} zoom={zoom} maxZoom={22} minZoom={12} style={{ height: "100%", width: "100%" }}>
       <TileLayer
@@ -43,15 +43,17 @@ export function PropertyMap(props: PropertyMapProps) {
       <ClickHandler onMapClick={onMapClick} />
       {pins.map((p) => (
         <Marker key={p.id} position={[p.lat, p.lng]} icon={pinIcon(p.color)}
-                eventHandlers={{ click: () => onPinClick?.(p.id) }} />
+                eventHandlers={{ click: () => onTargetClick?.(p.id) }} />
       ))}
       {lines.map((ln) => (
         <Polyline key={ln.id} positions={ln.coords.map(toLatLng)}
-                  pathOptions={{ color: ln.color, weight: 4 }} />
+                  pathOptions={{ color: ln.color, weight: 4 }}
+                  eventHandlers={{ click: () => onTargetClick?.(ln.id) }} />
       ))}
       {polygons.map((pg) => (
         <Polygon key={pg.id} positions={pg.coords.map(toLatLng)}
-                 pathOptions={{ color: pg.color, weight: 2, fillOpacity: 0.2 }} />
+                 pathOptions={{ color: pg.color, weight: 2, fillOpacity: 0.2 }}
+                 eventHandlers={{ click: () => onTargetClick?.(pg.id) }} />
       ))}
       {draftLine && draftLine.length > 1 && (
         <Polyline positions={draftLine.map(toLatLng)}
