@@ -7,6 +7,7 @@ import { hydrateTargetsForSite, insertTarget, updateTarget, deleteTarget } from 
 import { hydratePhotosForSite } from "../lib/api-photos";
 import { PropertyMap } from "../components/Map/PropertyMap";
 import { TargetDetailModal } from "../components/Targets/TargetDetailModal";
+import { SyncStatus } from "../components/Sync/SyncStatus";
 import type { Site, Target, TargetType } from "../types";
 
 const TARGET_COLORS: Record<TargetType, string> = {
@@ -111,9 +112,14 @@ export function SiteCaptureRoute() {
 
   return (
     <div className="h-screen flex flex-col">
-      <header className="p-3 bg-upscape-panel border-b border-upscape-rule">
-        <h1 className="text-lg font-bold">{site.customer_name}</h1>
-        <p className="text-sm text-gray-400">{site.property_address}</p>
+      <header className="p-3 bg-upscape-panel border-b border-upscape-rule flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-lg font-bold">{site.customer_name}</h1>
+          <p className="text-sm text-gray-400">{site.property_address}</p>
+        </div>
+        <div className="pt-1">
+          <SyncStatus />
+        </div>
       </header>
       <main className="flex-1 relative">
         <PropertyMap
