@@ -32,12 +32,13 @@ const toLatLng = (c: [number, number]): [number, number] => [c[1], c[0]];
 export function PropertyMap(props: PropertyMapProps) {
   const { center, zoom, pins, lines = [], polygons = [], draftLine, onMapClick, onPinClick } = props;
   return (
-    <MapContainer center={center} zoom={zoom} style={{ height: "100%", width: "100%" }}>
+    <MapContainer center={center} zoom={zoom} maxZoom={22} minZoom={12} style={{ height: "100%", width: "100%" }}>
       <TileLayer
         url={`https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/{z}/{x}/{y}@2x?access_token=${TOKEN}`}
         attribution='© Mapbox © OpenStreetMap'
         tileSize={512}
         zoomOffset={-1}
+        maxZoom={22}
       />
       <ClickHandler onMapClick={onMapClick} />
       {pins.map((p) => (

@@ -19,7 +19,7 @@ export function NewSiteRoute() {
       const site = await createSite({
         customer_name: customer,
         property_address: geo.place_name,
-        map_center_lat: geo.lat, map_center_lng: geo.lng, map_zoom: 19,
+        map_center_lat: geo.lat, map_center_lng: geo.lng, map_zoom: 20,
       });
       nav(`/sites/${site.id}`);
     } catch (e: any) {

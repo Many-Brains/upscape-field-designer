@@ -110,7 +110,7 @@ export function SiteCaptureRoute() {
       <main className="flex-1 relative">
         <PropertyMap
           center={[site.map_center_lat ?? 41.14, site.map_center_lng ?? -73.36]}
-          zoom={site.map_zoom ?? 19}
+          zoom={site.map_zoom ?? 20}
           pins={pins}
           lines={lines}
           polygons={polygons}
