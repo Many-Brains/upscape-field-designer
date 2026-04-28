@@ -143,14 +143,14 @@ export function SiteCaptureRoute() {
 
   return (
     <div className="h-screen flex flex-col">
-      <header className="p-3 bg-upscape-panel border-b border-upscape-rule flex items-start justify-between gap-3">
+      <header className="p-3 bg-upscape-panel border-b border-upscape-rule flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
           <Link to="/" className="text-upscape-orange text-xs">← Sites</Link>
           <h1 className="text-lg font-bold truncate">{site.customer_name}</h1>
           <p className="text-sm text-gray-400 truncate">{site.property_address}</p>
         </div>
-        <div className="flex flex-col items-end gap-2 flex-shrink-0">
-          <img src="/upscape-logo.png" alt="Upscape" className="h-8 w-auto" />
+        <img src="/upscape-logo.png" alt="Upscape" className="h-16 w-auto flex-shrink-0" />
+        <div className="flex flex-col items-end gap-1.5 flex-1 min-w-0">
           <button
             onClick={handleGenerateDraft}
             disabled={generating}
