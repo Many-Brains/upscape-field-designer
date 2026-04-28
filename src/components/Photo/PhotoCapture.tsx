@@ -2,54 +2,87 @@ import { useRef, useState } from "react";
 import { resizeImageToBlob } from "../../lib/photo";
 import { uploadPhoto } from "../../lib/api-photos";
 
+type Stage = "idle" | "resize" | "gps" | "upload" | "save";
+
+const STAGE_LABEL: Record<Stage, string> = {
+  idle: "📷 Take Photo",
+  resize: "Resizing…",
+  gps: "Locating…",
+  upload: "Uploading…",
+  save: "Saving…",
+};
+
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms / 1000}s`)), ms)
+    ),
+  ]);
+}
+
 export function PhotoCapture({
   siteId, targetId,
   onUploaded,
 }: { siteId: string; targetId: string | null; onUploaded: (id: string) => void; }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
+  const [stage, setStage] = useState<Stage>("idle");
   const [error, setError] = useState<string | null>(null);
 
   async function onChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
-    setUploading(true);
     setError(null);
+    console.log(`[photo] file selected: ${f.name}, ${f.type}, ${(f.size / 1024).toFixed(0)} KB`);
+
     try {
-      const blob = await resizeImageToBlob(f);
+      setStage("resize");
+      const blob = await withTimeout(resizeImageToBlob(f), 15_000, "Resize");
+      console.log(`[photo] resized to ${(blob.size / 1024).toFixed(0)} KB`);
+
+      setStage("gps");
       const pos = await new Promise<GeolocationPosition | null>((res) => {
         if (!navigator.geolocation) return res(null);
         navigator.geolocation.getCurrentPosition(res as any, () => res(null), { timeout: 3000 });
       });
-      const photo = await uploadPhoto({
-        siteId, targetId, blob,
-        capturedLat: pos?.coords.latitude, capturedLng: pos?.coords.longitude,
-      });
+      console.log(`[photo] gps: ${pos ? `${pos.coords.latitude},${pos.coords.longitude}` : "denied/unavailable"}`);
+
+      setStage("upload");
+      const photo = await withTimeout(
+        uploadPhoto({
+          siteId, targetId, blob,
+          capturedLat: pos?.coords.latitude, capturedLng: pos?.coords.longitude,
+        }),
+        30_000,
+        "Upload",
+      );
+      console.log(`[photo] uploaded: ${photo.id}`);
       onUploaded(photo.id);
     } catch (e: any) {
-      console.error("Photo upload failed:", e);
+      console.error("[photo] failed at stage:", stage, e);
       const msg = e?.message ?? e?.error_description ?? String(e);
-      setError(msg);
-      alert("Photo upload failed:\n\n" + msg);
+      setError(`Stage ${stage}: ${msg}`);
+      alert(`Photo failed at "${STAGE_LABEL[stage]}":\n\n${msg}`);
     } finally {
-      setUploading(false);
+      setStage("idle");
       if (inputRef.current) inputRef.current.value = "";
     }
   }
 
+  const busy = stage !== "idle";
   return (
     <div>
       <button onClick={() => inputRef.current?.click()}
-              disabled={uploading}
+              disabled={busy}
               className="px-4 py-2 bg-upscape-orange text-black rounded font-bold disabled:opacity-50">
-        {uploading ? "Uploading…" : "📷 Take Photo"}
+        {STAGE_LABEL[stage]}
       </button>
       <input
         ref={inputRef} type="file" accept="image/*" capture="environment"
         onChange={onChange} className="hidden"
       />
       {error && (
-        <p className="text-red-400 text-xs mt-2 break-words">Upload failed: {error}</p>
+        <p className="text-red-400 text-xs mt-2 break-words">{error}</p>
       )}
     </div>
   );
