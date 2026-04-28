@@ -1,11 +1,14 @@
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LoginRoute } from "./routes/login";
 import { AuthGuard } from "./components/Auth/AuthGuard";
 import { SitesListRoute } from "./routes/sites";
 import { NewSiteRoute } from "./routes/sites-new";
 import { SiteCaptureRoute } from "./routes/sites-capture";
+import { startSyncLoop } from "./lib/sync";
 
 export default function App() {
+  useEffect(() => { startSyncLoop(); }, []);
   return (
     <BrowserRouter>
       <Routes>

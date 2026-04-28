@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { useLiveQuery } from "dexie-react-hooks";
 import { supabase } from "../lib/supabase";
-import { listTargets, insertTarget } from "../lib/api-targets";
+import { db } from "../lib/db";
+import { hydrateTargetsForSite, insertTarget, updateTarget, deleteTarget } from "../lib/api-targets";
+import { hydratePhotosForSite } from "../lib/api-photos";
 import { PropertyMap } from "../components/Map/PropertyMap";
 import { TargetDetailModal } from "../components/Targets/TargetDetailModal";
 import type { Site, Target, TargetType } from "../types";
@@ -24,15 +27,22 @@ const POLYGON_TYPES: TargetType[] = ["garden_bed"];
 export function SiteCaptureRoute() {
   const { siteId } = useParams<{ siteId: string }>();
   const [site, setSite] = useState<Site | null>(null);
-  const [targets, setTargets] = useState<Target[]>([]);
   const [activeType, setActiveType] = useState<TargetType>("specimen_tree");
   const [drawing, setDrawing] = useState<{ type: TargetType; points: [number, number][] } | null>(null);
   const [editingTarget, setEditingTarget] = useState<Target | null>(null);
 
+  // Live targets from Dexie (auto-updates on inserts/updates/deletes)
+  const targets = useLiveQuery<Target[]>(
+    () => siteId ? db.targets.where("site_id").equals(siteId).sortBy("order_index") : Promise.resolve<Target[]>([]),
+    [siteId],
+  ) ?? [];
+
   useEffect(() => {
     if (!siteId) return;
     supabase.from("sites").select("*").eq("id", siteId).single().then(({ data }) => setSite(data as Site));
-    listTargets(siteId).then(setTargets);
+    // Hydrate local DB from server, ignore failures (e.g., offline) — Dexie still works
+    hydrateTargetsForSite(siteId).catch(err => console.warn("[hydrate targets]", err));
+    hydratePhotosForSite(siteId).catch(err => console.warn("[hydrate photos]", err));
   }, [siteId]);
 
   async function handleMapClick(lng: number, lat: number) {
@@ -43,8 +53,7 @@ export function SiteCaptureRoute() {
         geometry: { type: "Point", coordinates: [lng, lat] },
         options: {}, order_index: targets.length,
       };
-      const inserted = await insertTarget(t);
-      setTargets([...targets, inserted]);
+      await insertTarget(t);
       return;
     }
     if (!drawing || drawing.type !== activeType) {
@@ -69,8 +78,7 @@ export function SiteCaptureRoute() {
       site_id: siteId, type: drawing.type,
       geometry, options: {}, order_index: targets.length,
     };
-    const inserted = await insertTarget(t);
-    setTargets([...targets, inserted]);
+    await insertTarget(t);
     setDrawing(null);
   }
 
@@ -130,13 +138,11 @@ export function SiteCaptureRoute() {
           target={editingTarget}
           siteId={siteId!}
           onSave={async (patch) => {
-            await supabase.from("targets").update(patch).eq("id", editingTarget.id);
-            setTargets(targets.map(t => t.id === editingTarget.id ? { ...t, ...patch } : t));
+            await updateTarget(editingTarget.id, patch);
             setEditingTarget(null);
           }}
           onDelete={async () => {
-            await supabase.from("targets").delete().eq("id", editingTarget.id);
-            setTargets(targets.filter(t => t.id !== editingTarget.id));
+            await deleteTarget(editingTarget.id);
             setEditingTarget(null);
           }}
           onClose={() => setEditingTarget(null)}

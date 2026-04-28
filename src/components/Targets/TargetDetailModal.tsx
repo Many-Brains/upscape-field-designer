@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
-import type { Photo, Target, TargetType } from "../../types";
+import { useState } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
+import type { Target, TargetType } from "../../types";
 import { PhotoCapture } from "../Photo/PhotoCapture";
-import { listPhotosForTarget } from "../../lib/api-photos";
+import { db } from "../../lib/db";
 
 const OPTIONS_BY_TYPE: Record<TargetType, { key: string; label: string; type: "boolean" | "number" }[]> = {
   specimen_tree: [{ key: "large_canopy", label: "Large canopy (paired)", type: "boolean" }],
@@ -26,11 +27,11 @@ export function TargetDetailModal({ target, siteId, onSave, onDelete, onClose }:
   const [label, setLabel] = useState(target.label ?? "");
   const [notes, setNotes] = useState(target.notes ?? "");
   const [options, setOptions] = useState<Record<string, unknown>>(target.options ?? {});
-  const [photos, setPhotos] = useState<Photo[]>([]);
 
-  useEffect(() => {
-    listPhotosForTarget(target.id).then(setPhotos);
-  }, [target.id]);
+  const photos = useLiveQuery(
+    () => db.photos.where("target_id").equals(target.id).sortBy("captured_at"),
+    [target.id],
+  ) ?? [];
 
   return (
     <div className="fixed inset-0 bg-black/70 z-[2000] flex items-end sm:items-center justify-center p-2">
@@ -71,10 +72,7 @@ export function TargetDetailModal({ target, siteId, onSave, onDelete, onClose }:
           <PhotoCapture
             siteId={siteId}
             targetId={target.id}
-            onUploaded={() => {
-              listPhotosForTarget(target.id).then(setPhotos);
-              onClose();
-            }}
+            onUploaded={() => onClose()}
           />
         </div>
 
