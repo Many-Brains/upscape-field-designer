@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { listTargets, insertTarget } from "../lib/api-targets";
 import { PropertyMap } from "../components/Map/PropertyMap";
+import { TargetDetailModal } from "../components/Targets/TargetDetailModal";
 import type { Site, Target, TargetType } from "../types";
 
 const TARGET_COLORS: Record<TargetType, string> = {
@@ -26,6 +27,7 @@ export function SiteCaptureRoute() {
   const [targets, setTargets] = useState<Target[]>([]);
   const [activeType, setActiveType] = useState<TargetType>("specimen_tree");
   const [drawing, setDrawing] = useState<{ type: TargetType; points: [number, number][] } | null>(null);
+  const [editingTarget, setEditingTarget] = useState<Target | null>(null);
 
   useEffect(() => {
     if (!siteId) return;
@@ -114,6 +116,7 @@ export function SiteCaptureRoute() {
           polygons={polygons}
           draftLine={drawing?.points}
           onMapClick={handleMapClick}
+          onPinClick={(id) => setEditingTarget(targets.find(t => t.id === id) ?? null)}
         />
         {drawing && (
           <button onClick={finishDrawing}
@@ -122,6 +125,22 @@ export function SiteCaptureRoute() {
           </button>
         )}
       </main>
+      {editingTarget && (
+        <TargetDetailModal
+          target={editingTarget}
+          onSave={async (patch) => {
+            await supabase.from("targets").update(patch).eq("id", editingTarget.id);
+            setTargets(targets.map(t => t.id === editingTarget.id ? { ...t, ...patch } : t));
+            setEditingTarget(null);
+          }}
+          onDelete={async () => {
+            await supabase.from("targets").delete().eq("id", editingTarget.id);
+            setTargets(targets.filter(t => t.id !== editingTarget.id));
+            setEditingTarget(null);
+          }}
+          onClose={() => setEditingTarget(null)}
+        />
+      )}
       <ToolPalette activeType={activeType} onChange={setActiveType} />
     </div>
   );
