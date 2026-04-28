@@ -33,7 +33,7 @@ export function TargetDetailModal({ target, siteId, onSave, onDelete, onClose }:
   }, [target.id]);
 
   return (
-    <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center p-2">
+    <div className="fixed inset-0 bg-black/70 z-[2000] flex items-end sm:items-center justify-center p-2">
       <div className="bg-upscape-panel w-full max-w-md p-4 rounded-t-2xl sm:rounded-2xl">
         <h2 className="text-lg font-bold mb-2">{target.type.replace("_", " ")}</h2>
         <label className="block text-xs uppercase text-upscape-orange mb-1">Label</label>
