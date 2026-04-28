@@ -41,11 +41,16 @@ export function PhotoCapture({
       console.log(`[photo] resized to ${(blob.size / 1024).toFixed(0)} KB`);
 
       setStage("gps");
-      const pos = await new Promise<GeolocationPosition | null>((res) => {
-        if (!navigator.geolocation) return res(null);
-        navigator.geolocation.getCurrentPosition(res as any, () => res(null), { timeout: 3000 });
-      });
-      console.log(`[photo] gps: ${pos ? `${pos.coords.latitude},${pos.coords.longitude}` : "denied/unavailable"}`);
+      // iOS Safari hangs getCurrentPosition forever if permission is unresolved or services are off.
+      // Wrap in Promise.race with our own hard 5s timeout that always fires.
+      const pos = await Promise.race([
+        new Promise<GeolocationPosition | null>((res) => {
+          if (!navigator.geolocation) return res(null);
+          navigator.geolocation.getCurrentPosition(res as any, () => res(null), { timeout: 3000, maximumAge: 60_000 });
+        }),
+        new Promise<null>((res) => setTimeout(() => res(null), 5000)),
+      ]);
+      console.log(`[photo] gps: ${pos ? `${pos.coords.latitude},${pos.coords.longitude}` : "denied/unavailable/timed-out"}`);
 
       setStage("upload");
       const photo = await withTimeout(
