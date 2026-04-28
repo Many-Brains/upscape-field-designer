@@ -5,6 +5,8 @@ import { supabase } from "../lib/supabase";
 import { db } from "../lib/db";
 import { hydrateTargetsForSite, insertTarget, updateTarget, deleteTarget } from "../lib/api-targets";
 import { hydratePhotosForSite } from "../lib/api-photos";
+import { flushQueue } from "../lib/sync";
+import { requestDraft } from "../lib/api-proposals";
 import { PropertyMap } from "../components/Map/PropertyMap";
 import { TargetDetailModal } from "../components/Targets/TargetDetailModal";
 import { SyncStatus } from "../components/Sync/SyncStatus";
@@ -31,6 +33,35 @@ export function SiteCaptureRoute() {
   const [activeType, setActiveType] = useState<TargetType>("specimen_tree");
   const [drawing, setDrawing] = useState<{ type: TargetType; points: [number, number][] } | null>(null);
   const [editingTarget, setEditingTarget] = useState<Target | null>(null);
+  const [generating, setGenerating] = useState(false);
+
+  async function handleGenerateDraft() {
+    if (!siteId) return;
+    setGenerating(true);
+    try {
+      // Make sure all queued ops are pushed before triggering the pipeline.
+      await flushQueue();
+      // Check if anything is still pending (offline or sync failure).
+      const stillPending = await db.queue.where("status").equals("pending").count();
+      const failed = await db.queue.where("status").equals("failed").count();
+      if (stillPending > 0 || failed > 0) {
+        const proceed = confirm(
+          `${stillPending + failed} change(s) haven't synced yet. The draft may be missing data. Generate anyway?`,
+        );
+        if (!proceed) {
+          setGenerating(false);
+          return;
+        }
+      }
+      await requestDraft(siteId);
+      alert("Draft generation started. The PDF will be emailed in a few minutes.");
+    } catch (e: any) {
+      console.error("[generate draft]", e);
+      alert("Failed to start draft generation:\n\n" + (e?.message ?? String(e)));
+    } finally {
+      setGenerating(false);
+    }
+  }
 
   // Live targets from Dexie (auto-updates on inserts/updates/deletes)
   const targets = useLiveQuery<Target[]>(
@@ -113,11 +144,18 @@ export function SiteCaptureRoute() {
   return (
     <div className="h-screen flex flex-col">
       <header className="p-3 bg-upscape-panel border-b border-upscape-rule flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-bold">{site.customer_name}</h1>
-          <p className="text-sm text-gray-400">{site.property_address}</p>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-lg font-bold truncate">{site.customer_name}</h1>
+          <p className="text-sm text-gray-400 truncate">{site.property_address}</p>
         </div>
-        <div className="pt-1">
+        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+          <button
+            onClick={handleGenerateDraft}
+            disabled={generating}
+            className="px-3 py-1.5 bg-upscape-orange text-black rounded text-sm font-bold disabled:opacity-50"
+          >
+            {generating ? "Sending…" : "Generate Draft"}
+          </button>
           <SyncStatus />
         </div>
       </header>
