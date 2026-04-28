@@ -68,7 +68,14 @@ export function TargetDetailModal({ target, siteId, onSave, onDelete, onClose }:
               </div>
             ))}
           </div>
-          <PhotoCapture siteId={siteId} targetId={target.id} onUploaded={() => listPhotosForTarget(target.id).then(setPhotos)} />
+          <PhotoCapture
+            siteId={siteId}
+            targetId={target.id}
+            onUploaded={() => {
+              listPhotosForTarget(target.id).then(setPhotos);
+              onClose();
+            }}
+          />
         </div>
 
         <div className="flex gap-2">

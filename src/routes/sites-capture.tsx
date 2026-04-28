@@ -161,12 +161,12 @@ function ToolPalette({
     { type: "custom_fixture", label: "Custom" },
   ];
   return (
-    <nav className="bg-upscape-panel p-2 grid grid-cols-4 gap-1 border-t border-upscape-rule">
+    <nav className="relative z-[400] bg-black/90 backdrop-blur-sm p-2 grid grid-cols-4 gap-1 border-t border-upscape-rule pb-[max(0.5rem,env(safe-area-inset-bottom))]">
       {TYPES.map((t) => (
         <button
           key={t.type}
           onClick={() => onChange(t.type)}
-          className={`p-2 rounded text-sm ${activeType === t.type ? "bg-upscape-orange text-black font-bold" : "bg-upscape-bg text-white"}`}
+          className={`p-3 rounded text-sm transition-colors ${activeType === t.type ? "bg-upscape-orange text-black font-bold" : "bg-upscape-panel text-white border border-upscape-rule active:bg-upscape-rule"}`}
         >
           {t.label}
         </button>

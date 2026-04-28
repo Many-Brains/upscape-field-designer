@@ -30,6 +30,7 @@ export function PhotoCapture({
       console.error("Photo upload failed:", e);
       const msg = e?.message ?? e?.error_description ?? String(e);
       setError(msg);
+      alert("Photo upload failed:\n\n" + msg);
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = "";
