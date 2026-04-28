@@ -16,11 +16,16 @@ const TARGET_COLORS: Record<TargetType, string> = {
   custom_fixture: "#888888",
 };
 
+const POINT_TYPES: TargetType[] = ["specimen_tree", "architectural_feature", "receptacle", "custom_fixture"];
+const LINE_TYPES: TargetType[] = ["tree_run", "walkway", "facade"];
+const POLYGON_TYPES: TargetType[] = ["garden_bed"];
+
 export function SiteCaptureRoute() {
   const { siteId } = useParams<{ siteId: string }>();
   const [site, setSite] = useState<Site | null>(null);
   const [targets, setTargets] = useState<Target[]>([]);
   const [activeType, setActiveType] = useState<TargetType>("specimen_tree");
+  const [drawing, setDrawing] = useState<{ type: TargetType; points: [number, number][] } | null>(null);
 
   useEffect(() => {
     if (!siteId) return;
@@ -30,16 +35,41 @@ export function SiteCaptureRoute() {
 
   async function handleMapClick(lng: number, lat: number) {
     if (!siteId) return;
-    const orderIndex = targets.length;
+    if (POINT_TYPES.includes(activeType)) {
+      const t: Omit<Target, "id"> = {
+        site_id: siteId, type: activeType,
+        geometry: { type: "Point", coordinates: [lng, lat] },
+        options: {}, order_index: targets.length,
+      };
+      const inserted = await insertTarget(t);
+      setTargets([...targets, inserted]);
+      return;
+    }
+    if (!drawing || drawing.type !== activeType) {
+      setDrawing({ type: activeType, points: [[lng, lat]] });
+    } else {
+      setDrawing({ ...drawing, points: [...drawing.points, [lng, lat]] });
+    }
+  }
+
+  async function finishDrawing() {
+    if (!drawing || !siteId) return;
+    let geometry: any;
+    if (LINE_TYPES.includes(drawing.type)) {
+      if (drawing.points.length < 2) { setDrawing(null); return; }
+      geometry = { type: "LineString", coordinates: drawing.points };
+    } else if (POLYGON_TYPES.includes(drawing.type)) {
+      if (drawing.points.length < 3) { setDrawing(null); return; }
+      const ring = [...drawing.points, drawing.points[0]];
+      geometry = { type: "Polygon", coordinates: [ring] };
+    }
     const t: Omit<Target, "id"> = {
-      site_id: siteId,
-      type: activeType,
-      geometry: { type: "Point", coordinates: [lng, lat] },
-      label: undefined, notes: undefined,
-      options: {}, order_index: orderIndex,
+      site_id: siteId, type: drawing.type,
+      geometry, options: {}, order_index: targets.length,
     };
     const inserted = await insertTarget(t);
     setTargets([...targets, inserted]);
+    setDrawing(null);
   }
 
   if (!site) return <p className="p-6">Loading…</p>;
@@ -50,6 +80,22 @@ export function SiteCaptureRoute() {
       id: t.id,
       lng: (t.geometry as any).coordinates[0],
       lat: (t.geometry as any).coordinates[1],
+      color: TARGET_COLORS[t.type],
+    }));
+
+  const lines = targets
+    .filter((t) => t.geometry.type === "LineString")
+    .map((t) => ({
+      id: t.id,
+      coords: (t.geometry as any).coordinates as [number, number][],
+      color: TARGET_COLORS[t.type],
+    }));
+
+  const polygons = targets
+    .filter((t) => t.geometry.type === "Polygon")
+    .map((t) => ({
+      id: t.id,
+      coords: (t.geometry as any).coordinates[0] as [number, number][],
       color: TARGET_COLORS[t.type],
     }));
 
@@ -64,8 +110,17 @@ export function SiteCaptureRoute() {
           center={[site.map_center_lat ?? 41.14, site.map_center_lng ?? -73.36]}
           zoom={site.map_zoom ?? 19}
           pins={pins}
+          lines={lines}
+          polygons={polygons}
+          draftLine={drawing?.points}
           onMapClick={handleMapClick}
         />
+        {drawing && (
+          <button onClick={finishDrawing}
+                  className="absolute top-4 right-4 bg-upscape-orange text-black px-4 py-2 rounded font-bold shadow-lg z-[1000]">
+            Finish ({drawing.points.length} pts)
+          </button>
+        )}
       </main>
       <ToolPalette activeType={activeType} onChange={setActiveType} />
     </div>

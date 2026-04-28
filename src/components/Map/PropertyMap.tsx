@@ -1,4 +1,4 @@
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Polyline, Polygon, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -8,13 +8,15 @@ export interface PropertyMapProps {
   center: [number, number];
   zoom: number;
   pins: { id: string; lng: number; lat: number; color: string }[];
+  lines?: { id: string; coords: [number, number][]; color: string }[];   // [lng, lat]
+  polygons?: { id: string; coords: [number, number][]; color: string }[]; // [lng, lat]
+  draftLine?: [number, number][];  // in-progress polyline being drawn (lng, lat)
   onMapClick: (lng: number, lat: number) => void;
+  onPinClick?: (id: string) => void;
 }
 
 function ClickHandler({ onMapClick }: { onMapClick: (lng: number, lat: number) => void }) {
-  useMapEvents({
-    click(e) { onMapClick(e.latlng.lng, e.latlng.lat); },
-  });
+  useMapEvents({ click(e) { onMapClick(e.latlng.lng, e.latlng.lat); } });
   return null;
 }
 
@@ -25,7 +27,10 @@ const pinIcon = (color: string) => L.divIcon({
   iconAnchor: [9, 9],
 });
 
-export function PropertyMap({ center, zoom, pins, onMapClick }: PropertyMapProps) {
+const toLatLng = (c: [number, number]): [number, number] => [c[1], c[0]];
+
+export function PropertyMap(props: PropertyMapProps) {
+  const { center, zoom, pins, lines = [], polygons = [], draftLine, onMapClick, onPinClick } = props;
   return (
     <MapContainer center={center} zoom={zoom} style={{ height: "100%", width: "100%" }}>
       <TileLayer
@@ -36,8 +41,21 @@ export function PropertyMap({ center, zoom, pins, onMapClick }: PropertyMapProps
       />
       <ClickHandler onMapClick={onMapClick} />
       {pins.map((p) => (
-        <Marker key={p.id} position={[p.lat, p.lng]} icon={pinIcon(p.color)} />
+        <Marker key={p.id} position={[p.lat, p.lng]} icon={pinIcon(p.color)}
+                eventHandlers={{ click: () => onPinClick?.(p.id) }} />
       ))}
+      {lines.map((ln) => (
+        <Polyline key={ln.id} positions={ln.coords.map(toLatLng)}
+                  pathOptions={{ color: ln.color, weight: 4 }} />
+      ))}
+      {polygons.map((pg) => (
+        <Polygon key={pg.id} positions={pg.coords.map(toLatLng)}
+                 pathOptions={{ color: pg.color, weight: 2, fillOpacity: 0.2 }} />
+      ))}
+      {draftLine && draftLine.length > 1 && (
+        <Polyline positions={draftLine.map(toLatLng)}
+                  pathOptions={{ color: "#F4884A", weight: 4, dashArray: "8 6" }} />
+      )}
     </MapContainer>
   );
 }
