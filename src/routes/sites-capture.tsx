@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import { supabase } from "../lib/supabase";
 import { db } from "../lib/db";
-import { hydrateTargetsForSite, insertTarget, updateTarget, deleteTarget } from "../lib/api-targets";
+import { hydrateTargetsForProject, insertTarget, updateTarget, deleteTarget } from "../lib/api-targets";
 import { hydratePhotosForSite } from "../lib/api-photos";
 import { flushQueue } from "../lib/sync";
 import { requestDraft } from "../lib/api-proposals";
@@ -28,7 +28,7 @@ const LINE_TYPES: TargetType[] = ["tree_run", "walkway", "facade"];
 const POLYGON_TYPES: TargetType[] = ["garden_bed"];
 
 export function SiteCaptureRoute() {
-  const { siteId } = useParams<{ siteId: string }>();
+  const { siteId, projectId } = useParams<{ siteId: string; projectId: string }>();
   const [site, setSite] = useState<Site | null>(null);
   const [activeType, setActiveType] = useState<TargetType>("specimen_tree");
   const [drawing, setDrawing] = useState<{ type: TargetType; points: [number, number][] } | null>(null);
@@ -36,7 +36,7 @@ export function SiteCaptureRoute() {
   const [generating, setGenerating] = useState(false);
 
   async function handleGenerateDraft() {
-    if (!siteId) return;
+    if (!siteId || !projectId) return;
     setGenerating(true);
     try {
       // Make sure all queued ops are pushed before triggering the pipeline.
@@ -53,7 +53,7 @@ export function SiteCaptureRoute() {
           return;
         }
       }
-      await requestDraft(siteId);
+      await requestDraft(siteId, projectId);
       alert("Draft generation started. The PDF will be emailed in a few minutes.");
     } catch (e: any) {
       console.error("[generate draft]", e);
@@ -65,23 +65,23 @@ export function SiteCaptureRoute() {
 
   // Live targets from Dexie (auto-updates on inserts/updates/deletes)
   const targets = useLiveQuery<Target[]>(
-    () => siteId ? db.targets.where("site_id").equals(siteId).sortBy("order_index") : Promise.resolve<Target[]>([]),
-    [siteId],
+    () => projectId ? db.targets.where("project_id").equals(projectId).sortBy("order_index") : Promise.resolve<Target[]>([]),
+    [projectId],
   ) ?? [];
 
   useEffect(() => {
-    if (!siteId) return;
+    if (!siteId || !projectId) return;
     supabase.from("sites").select("*").eq("id", siteId).single().then(({ data }) => setSite(data as Site));
     // Hydrate local DB from server, ignore failures (e.g., offline) — Dexie still works
-    hydrateTargetsForSite(siteId).catch(err => console.warn("[hydrate targets]", err));
+    hydrateTargetsForProject(projectId).catch(err => console.warn("[hydrate targets]", err));
     hydratePhotosForSite(siteId).catch(err => console.warn("[hydrate photos]", err));
-  }, [siteId]);
+  }, [siteId, projectId]);
 
   async function handleMapClick(lng: number, lat: number) {
-    if (!siteId) return;
+    if (!siteId || !projectId) return;
     if (POINT_TYPES.includes(activeType)) {
       const t: Omit<Target, "id"> = {
-        site_id: siteId, type: activeType,
+        site_id: siteId, project_id: projectId, type: activeType,
         geometry: { type: "Point", coordinates: [lng, lat] },
         options: {}, order_index: targets.length,
       };
@@ -96,7 +96,7 @@ export function SiteCaptureRoute() {
   }
 
   async function finishDrawing() {
-    if (!drawing || !siteId) return;
+    if (!drawing || !siteId || !projectId) return;
     let geometry: any;
     if (LINE_TYPES.includes(drawing.type)) {
       if (drawing.points.length < 2) { setDrawing(null); return; }
@@ -107,7 +107,7 @@ export function SiteCaptureRoute() {
       geometry = { type: "Polygon", coordinates: [ring] };
     }
     const t: Omit<Target, "id"> = {
-      site_id: siteId, type: drawing.type,
+      site_id: siteId, project_id: projectId, type: drawing.type,
       geometry, options: {}, order_index: targets.length,
     };
     await insertTarget(t);
@@ -145,7 +145,7 @@ export function SiteCaptureRoute() {
     <div className="h-screen flex flex-col">
       <header className="p-3 bg-upscape-panel border-b border-upscape-rule flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <Link to="/" className="text-upscape-orange text-xs">← Sites</Link>
+          <Link to={`/sites/${siteId}`} className="text-upscape-orange text-xs">← Site</Link>
           <h1 className="text-lg font-bold truncate">{site.customer_name}</h1>
           <p className="text-sm text-gray-400 truncate">{site.property_address}</p>
         </div>

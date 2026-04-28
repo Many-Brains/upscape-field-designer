@@ -1,9 +1,12 @@
 import Dexie, { type Table } from "dexie";
-import type { Site, Target, Photo } from "../types";
+import type { Project, Site, Target, Photo } from "../types";
 
 export interface QueuedOp {
   id?: number;
-  kind: "insert_target" | "update_target" | "delete_target" | "upload_photo" | "update_site";
+  kind:
+    | "insert_target" | "update_target" | "delete_target"
+    | "upload_photo" | "update_site"
+    | "insert_project" | "update_project" | "delete_project";
   payload: any;
   created_at: number;
   status: "pending" | "in_flight" | "failed";
@@ -20,6 +23,7 @@ export interface PendingBlob {
 
 export class FieldDB extends Dexie {
   sites!: Table<Site, string>;
+  projects!: Table<Project, string>;
   targets!: Table<Target, string>;
   photos!: Table<Photo, string>;
   queue!: Table<QueuedOp, number>;
@@ -34,6 +38,11 @@ export class FieldDB extends Dexie {
       photos: "id, site_id, target_id, captured_at",
       queue: "++id, status, created_at",
       pendingBlobs: "id, siteId, targetId",
+    });
+    // v2 adds projects table + project_id index on targets
+    this.version(2).stores({
+      projects: "id, site_id, status, updated_at",
+      targets: "id, site_id, project_id, type, order_index",
     });
   }
 }

@@ -73,6 +73,22 @@ async function execute(op: QueuedOp) {
       if (error) throw error;
       break;
     }
+    case "insert_project": {
+      const { error } = await supabase.from("projects").insert(op.payload);
+      if (error) throw error;
+      break;
+    }
+    case "update_project": {
+      const { id, ...patch } = op.payload;
+      const { error } = await supabase.from("projects").update(patch).eq("id", id);
+      if (error) throw error;
+      break;
+    }
+    case "delete_project": {
+      const { error } = await supabase.from("projects").delete().eq("id", op.payload.id);
+      if (error) throw error;
+      break;
+    }
   }
 }
 

@@ -23,12 +23,24 @@ export interface Site {
 export interface Target {
   id: string;
   site_id: string;
+  project_id: string;
   type: TargetType;
   geometry: GeoJsonGeometry;
   label?: string;
   notes?: string;
   options: Record<string, unknown>;
   order_index: number;
+}
+
+export interface Project {
+  id: string;
+  site_id: string;
+  name: string;
+  status: "capturing" | "proposal_drafted" | "sent" | "accepted";
+  goals?: string;
+  internal_notes?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Photo {

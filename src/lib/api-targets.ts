@@ -19,6 +19,21 @@ export async function hydrateTargetsForSite(siteId: string): Promise<void> {
   });
 }
 
+/**
+ * Hydrate Dexie from Supabase for a given project.
+ * Called when a project is loaded so the local DB matches server state on entry.
+ */
+export async function hydrateTargetsForProject(projectId: string): Promise<void> {
+  const { data, error } = await supabase.from("targets")
+    .select("*").eq("project_id", projectId).order("order_index");
+  if (error) throw error;
+  await db.transaction("rw", db.targets, async () => {
+    const existing = await db.targets.where("project_id").equals(projectId).toArray();
+    await db.targets.bulkDelete(existing.map(t => t.id));
+    if (data && data.length) await db.targets.bulkAdd(data as Target[]);
+  });
+}
+
 /** Read targets from local Dexie (call useLiveQuery in components instead for reactivity). */
 export async function listTargets(siteId: string): Promise<Target[]> {
   return db.targets.where("site_id").equals(siteId).sortBy("order_index");

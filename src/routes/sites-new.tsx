@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createSite } from "../lib/api";
+import { insertProject } from "../lib/api-projects";
 import { geocodeAddress } from "../lib/geocode";
 
 export function NewSiteRoute() {
@@ -21,7 +22,11 @@ export function NewSiteRoute() {
         property_address: geo.place_name,
         map_center_lat: geo.lat, map_center_lng: geo.lng, map_zoom: 20,
       });
-      nav(`/sites/${site.id}`);
+      const project = await insertProject({
+        site_id: site.id,
+        name: "Initial",
+      });
+      nav(`/sites/${site.id}/projects/${project.id}`);
     } catch (e: any) {
       setErr(e.message);
       setBusy(false);

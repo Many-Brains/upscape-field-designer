@@ -39,8 +39,9 @@ export async function deleteSite(siteId: string): Promise<void> {
   const { error: siteErr } = await supabase.from("sites").delete().eq("id", siteId);
   if (siteErr) throw siteErr;
   // 4. Wipe local Dexie data for this site
-  await db.transaction("rw", db.sites, db.targets, db.photos, db.pendingBlobs, async () => {
+  await db.transaction("rw", [db.sites, db.projects, db.targets, db.photos, db.pendingBlobs], async () => {
     await db.sites.delete(siteId);
+    await db.projects.where("site_id").equals(siteId).delete();
     await db.targets.where("site_id").equals(siteId).delete();
     await db.photos.where("site_id").equals(siteId).delete();
     await db.pendingBlobs.where("siteId").equals(siteId).delete();
