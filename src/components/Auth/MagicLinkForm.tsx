@@ -62,7 +62,7 @@ export function MagicLinkForm() {
   return (
     <form onSubmit={verifyCode} className="flex flex-col gap-3 max-w-sm w-full">
       <p className="text-gray-400 text-sm">
-        We emailed a 6-digit code to <span className="text-white">{email}</span>.
+        We emailed a code to <span className="text-white">{email}</span>.
       </p>
       <input
         type="text"
@@ -72,8 +72,8 @@ export function MagicLinkForm() {
         required
         value={code}
         onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-        placeholder="123456"
-        maxLength={6}
+        placeholder="12345678"
+        maxLength={8}
         className="rounded p-3 bg-upscape-panel border border-upscape-rule text-white text-center text-2xl tracking-widest font-mono"
       />
       <button type="submit" disabled={busy || code.length < 6}
