@@ -30,7 +30,7 @@ export function MagicLinkForm() {
     const { error } = await supabase.auth.verifyOtp({
       email,
       token: code.trim(),
-      type: "email",
+      type: "magiclink",
     });
     setBusy(false);
     if (error) {
