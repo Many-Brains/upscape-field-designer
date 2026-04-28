@@ -12,8 +12,9 @@ export function SitesListRoute() {
 
   return (
     <div className="p-4 max-w-2xl mx-auto">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Sites</h1>
+      <div className="flex justify-between items-center mb-4 gap-2">
+        <h1 className="text-2xl font-bold flex-1">Sites</h1>
+        <Link to="/settings" className="text-gray-400 px-3 py-2 text-2xl" aria-label="Settings">⚙</Link>
         <Link to="/sites/new" className="bg-upscape-orange text-black px-4 py-2 rounded font-bold">
           + New Site
         </Link>

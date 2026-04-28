@@ -5,6 +5,7 @@ import { AuthGuard } from "./components/Auth/AuthGuard";
 import { SitesListRoute } from "./routes/sites";
 import { NewSiteRoute } from "./routes/sites-new";
 import { SiteCaptureRoute } from "./routes/sites-capture";
+import { SettingsRoute } from "./routes/settings";
 import { startSyncLoop } from "./lib/sync";
 
 export default function App() {
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="/" element={<AuthGuard><SitesListRoute /></AuthGuard>} />
         <Route path="/sites/new" element={<AuthGuard><NewSiteRoute /></AuthGuard>} />
         <Route path="/sites/:siteId" element={<AuthGuard><SiteCaptureRoute /></AuthGuard>} />
+        <Route path="/settings" element={<AuthGuard><SettingsRoute /></AuthGuard>} />
       </Routes>
     </BrowserRouter>
   );
