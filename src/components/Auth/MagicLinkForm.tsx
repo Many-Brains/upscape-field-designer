@@ -27,11 +27,13 @@ export function MagicLinkForm() {
     e.preventDefault();
     setBusy(true);
     setErr(null);
-    const { error } = await supabase.auth.verifyOtp({
-      email,
-      token: code.trim(),
-      type: "email",
-    });
+    const token = code.trim();
+    // Try "email" first (newer API), fall back to "magiclink" (older / signInWithOtp default).
+    let { error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
+    if (error) {
+      const fallback = await supabase.auth.verifyOtp({ email, token, type: "magiclink" });
+      error = fallback.error;
+    }
     setBusy(false);
     if (error) {
       setErr(error.message);
