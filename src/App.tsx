@@ -7,6 +7,7 @@ import { NewSiteRoute } from "./routes/sites-new";
 import { SiteCaptureRoute } from "./routes/sites-capture";
 import { SiteDetailRoute } from "./routes/site-detail";
 import { NewProjectRoute } from "./routes/projects-new";
+import { EditProjectRoute } from "./routes/projects-edit";
 import { SettingsRoute } from "./routes/settings";
 import { startSyncLoop } from "./lib/sync";
 
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/sites/new" element={<AuthGuard><NewSiteRoute /></AuthGuard>} />
         <Route path="/sites/:siteId" element={<AuthGuard><SiteDetailRoute /></AuthGuard>} />
         <Route path="/sites/:siteId/projects/new" element={<AuthGuard><NewProjectRoute /></AuthGuard>} />
+        <Route path="/sites/:siteId/projects/:projectId/edit" element={<AuthGuard><EditProjectRoute /></AuthGuard>} />
         <Route path="/sites/:siteId/projects/:projectId" element={<AuthGuard><SiteCaptureRoute /></AuthGuard>} />
       </Routes>
     </BrowserRouter>

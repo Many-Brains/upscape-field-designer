@@ -60,6 +60,13 @@ export function SiteDetailRoute() {
               </div>
               {p.goals && <div className="text-gray-400 text-sm mt-1 line-clamp-2">{p.goals}</div>}
             </Link>
+            <Link
+              to={`/sites/${siteId}/projects/${p.id}/edit`}
+              className="text-gray-500 hover:text-upscape-orange px-3 py-2 text-sm flex-shrink-0"
+              aria-label={`Edit ${p.name}`}
+            >
+              ✏️
+            </Link>
             <button
               onClick={() => handleDelete(p)}
               disabled={deletingId === p.id}

@@ -1,54 +1,60 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { createSite } from "../lib/api";
-import { insertProject } from "../lib/api-projects";
-import { geocodeAddress } from "../lib/geocode";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { getProject, updateProject } from "../lib/api-projects";
+import type { Project } from "../types";
 
-export function NewSiteRoute() {
-  const [customer, setCustomer] = useState("");
-  const [address, setAddress] = useState("");
+export function EditProjectRoute() {
+  const { siteId, projectId } = useParams<{ siteId: string; projectId: string }>();
+  const nav = useNavigate();
+  const [name, setName] = useState("");
   const [goals, setGoals] = useState("");
   const [internalNotes, setInternalNotes] = useState("");
+  const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const nav = useNavigate();
+
+  useEffect(() => {
+    if (!projectId) return;
+    getProject(projectId).then((p: Project | null) => {
+      if (!p) {
+        setErr("Project not found");
+        setLoaded(true);
+        return;
+      }
+      setName(p.name);
+      setGoals(p.goals ?? "");
+      setInternalNotes(p.internal_notes ?? "");
+      setLoaded(true);
+    });
+  }, [projectId]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!projectId || !siteId) return;
     setBusy(true); setErr(null);
-    const geo = await geocodeAddress(address);
-    if (!geo) { setErr("Couldn't find that address."); setBusy(false); return; }
     try {
-      const site = await createSite({
-        customer_name: customer,
-        property_address: geo.place_name,
-        map_center_lat: geo.lat, map_center_lng: geo.lng, map_zoom: 20,
-      });
-      const project = await insertProject({
-        site_id: site.id,
-        name: "Initial",
+      await updateProject(projectId, {
+        name: name.trim(),
         goals: goals.trim() || undefined,
         internal_notes: internalNotes.trim() || undefined,
       });
-      nav(`/sites/${site.id}/projects/${project.id}`);
+      nav(`/sites/${siteId}`);
     } catch (e: any) {
-      setErr(e.message);
+      setErr(e?.message ?? String(e));
       setBusy(false);
     }
   }
 
+  if (!loaded) return <div className="p-6 text-gray-500">Loading…</div>;
+
   return (
     <form onSubmit={submit} className="p-4 max-w-md mx-auto flex flex-col gap-3">
-      <h1 className="text-2xl font-bold mb-2">New Site</h1>
+      <Link to={`/sites/${siteId}`} className="text-upscape-orange text-xs">← Back</Link>
+      <h1 className="text-2xl font-bold">Edit Project</h1>
       <input
-        required placeholder="Customer name (Last, First)" value={customer}
-        onChange={(e) => setCustomer(e.target.value)}
-        className="rounded p-3 bg-upscape-panel border border-upscape-rule"
-      />
-      <input
-        required placeholder="Property address" value={address}
-        onChange={(e) => setAddress(e.target.value)}
-        className="rounded p-3 bg-upscape-panel border border-upscape-rule"
+        required placeholder="Project name"
+        value={name} onChange={(e) => setName(e.target.value)}
+        className="rounded p-3 bg-upscape-panel border border-upscape-rule text-white"
       />
       <label className="block text-xs uppercase text-upscape-orange mt-2">Customer Goals</label>
       <textarea
@@ -65,7 +71,7 @@ export function NewSiteRoute() {
         className="rounded p-3 bg-upscape-panel border border-upscape-rule text-white"
       />
       <button disabled={busy} className="rounded p-3 bg-upscape-orange text-black font-bold disabled:opacity-50">
-        {busy ? "Looking up…" : "Start Capture"}
+        {busy ? "Saving…" : "Save"}
       </button>
       {err && <p className="text-red-400">{err}</p>}
     </form>
