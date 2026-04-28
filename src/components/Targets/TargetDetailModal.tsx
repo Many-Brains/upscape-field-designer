@@ -1,5 +1,7 @@
-import { useState } from "react";
-import type { Target, TargetType } from "../../types";
+import { useEffect, useState } from "react";
+import type { Photo, Target, TargetType } from "../../types";
+import { PhotoCapture } from "../Photo/PhotoCapture";
+import { listPhotosForTarget } from "../../lib/api-photos";
 
 const OPTIONS_BY_TYPE: Record<TargetType, { key: string; label: string; type: "boolean" | "number" }[]> = {
   specimen_tree: [{ key: "large_canopy", label: "Large canopy (paired)", type: "boolean" }],
@@ -14,15 +16,21 @@ const OPTIONS_BY_TYPE: Record<TargetType, { key: string; label: string; type: "b
 
 interface Props {
   target: Target;
+  siteId: string;
   onSave: (patch: Partial<Target>) => void;
   onDelete: () => void;
   onClose: () => void;
 }
 
-export function TargetDetailModal({ target, onSave, onDelete, onClose }: Props) {
+export function TargetDetailModal({ target, siteId, onSave, onDelete, onClose }: Props) {
   const [label, setLabel] = useState(target.label ?? "");
   const [notes, setNotes] = useState(target.notes ?? "");
   const [options, setOptions] = useState<Record<string, unknown>>(target.options ?? {});
+  const [photos, setPhotos] = useState<Photo[]>([]);
+
+  useEffect(() => {
+    listPhotosForTarget(target.id).then(setPhotos);
+  }, [target.id]);
 
   return (
     <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center p-2">
@@ -50,6 +58,18 @@ export function TargetDetailModal({ target, onSave, onDelete, onClose }: Props) 
         <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
                   rows={3}
                   className="w-full p-2 mb-3 bg-upscape-bg rounded border border-upscape-rule" />
+
+        <div className="mb-3">
+          <label className="block text-xs uppercase text-upscape-orange mb-1">Photos ({photos.length})</label>
+          <div className="flex gap-2 mb-2 overflow-x-auto">
+            {photos.map((p) => (
+              <div key={p.id} className="w-16 h-16 bg-black flex-shrink-0 rounded overflow-hidden flex items-center justify-center">
+                <span className="text-[10px] text-gray-400 p-1 text-center">{new Date(p.captured_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
+            ))}
+          </div>
+          <PhotoCapture siteId={siteId} targetId={target.id} onUploaded={() => listPhotosForTarget(target.id).then(setPhotos)} />
+        </div>
 
         <div className="flex gap-2">
           <button onClick={onClose} className="flex-1 p-3 bg-upscape-bg rounded">Cancel</button>

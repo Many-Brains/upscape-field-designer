@@ -128,6 +128,7 @@ export function SiteCaptureRoute() {
       {editingTarget && (
         <TargetDetailModal
           target={editingTarget}
+          siteId={siteId!}
           onSave={async (patch) => {
             await supabase.from("targets").update(patch).eq("id", editingTarget.id);
             setTargets(targets.map(t => t.id === editingTarget.id ? { ...t, ...patch } : t));
