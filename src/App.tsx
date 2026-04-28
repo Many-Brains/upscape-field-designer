@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LoginRoute } from "./routes/login";
 import { AuthGuard } from "./components/Auth/AuthGuard";
 import { SitesListRoute } from "./routes/sites";
+import { NewSiteRoute } from "./routes/sites-new";
+import { SiteCaptureRoute } from "./routes/sites-capture";
 
 export default function App() {
   return (
@@ -9,6 +11,8 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginRoute />} />
         <Route path="/" element={<AuthGuard><SitesListRoute /></AuthGuard>} />
+        <Route path="/sites/new" element={<AuthGuard><NewSiteRoute /></AuthGuard>} />
+        <Route path="/sites/:siteId" element={<AuthGuard><SiteCaptureRoute /></AuthGuard>} />
       </Routes>
     </BrowserRouter>
   );
